@@ -25,15 +25,15 @@
 
 @interface AMQPExchange : AMQPObject
 
-@property (readonly) amqp_bytes_t internalExchange __deprecated;
+@property (readonly) amqp_bytes_t internalExchange;
 @property (readonly) AMQPChannel *channel;
 
-- (id)initExchangeOfType:(NSString *)theType withName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete;
-- (id)initDirectExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete;
-- (id)initFanoutExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete;
-- (id)initTopicExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete;
+- (id)initExchangeOfType:(NSString *)theType withName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
+- (id)initDirectExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
+- (id)initFanoutExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
+- (id)initTopicExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
 - (void)dealloc;
 
-- (void)publishMessage:(NSString *)body usingRoutingKey:(NSString *)theRoutingKey;
+- (void)publishMessage:(NSString *)body usingRoutingKey:(NSString *)theRoutingKey error:(NSError * __autoreleasing *)error;
 
 @end

@@ -14,23 +14,27 @@
 
 - (void)publishMessage:(NSString *)body
              messageID:(NSString *)messageID
-       usingRoutingKey:(NSString *)theRoutingKey;
+       usingRoutingKey:(NSString *)theRoutingKey
+                 error:(NSError * __autoreleasing *)error;
 
 - (void)publishMessage:(NSString *)messageType
              messageID:(NSString *)messageID
                payload:(NSString *)body
-       usingRoutingKey:(NSString *)theRoutingKey;
+       usingRoutingKey:(NSString *)theRoutingKey
+                 error:(NSError * __autoreleasing *)error;
 
 - (void)publishMessage:(NSString *)messageType
              messageID:(NSString *)messageID
            payloadData:(NSData *)body
-       usingRoutingKey:(NSString *)theRoutingKey;
+       usingRoutingKey:(NSString *)theRoutingKey
+                 error:(NSError * __autoreleasing *)error;
 
 - (void)publishMessage:(NSString *)messageType
              messageID:(NSString *)messageID
            payloadData:(NSData *)payload
        usingRoutingKey:(NSString *)routingKey
          correlationID:(NSString *)correlationID
-         callbackQueue:(NSString *)callbackQueue;
+         callbackQueue:(NSString *)callbackQueue
+                 error:(NSError * __autoreleasing *)error;
 
 @end

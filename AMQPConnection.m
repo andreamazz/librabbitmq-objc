@@ -25,9 +25,8 @@
 
 #import "AMQPChannel.h"
 
-NSString *const kAMQPConnectionException    = @"AMQPConnectionException";
-NSString *const kAMQPLoginException         = @"AMQPLoginException";
-NSString *const kAMQPOperationException     = @"AMQPException";
+NSString *const kAMQPDomain         = @"com.librabbitmq-objc.amqp";
+NSInteger const kAMQPErrorCode    = -1010;
 
 @implementation AMQPConnection
 {
@@ -42,7 +41,7 @@ NSString *const kAMQPOperationException     = @"AMQPException";
     if ((self = [super init])) {
 		_internalConnection = amqp_new_connection();
         if (!_internalConnection) {
-            [NSException raise:kAMQPConnectionException format:@"Unable to create a new AMQP connection"];
+            return nil;
         }
         _socket = NULL;
 
@@ -54,24 +53,25 @@ NSString *const kAMQPOperationException     = @"AMQPException";
 
 - (void)dealloc
 {
-    @try {
-        [self disconnect];
+    NSError *error;
+    [self disconnectWithError:&error];
+
+    if (error) {
+        NSLog(@"[AMQPConnection] Problem disconnecting: %@", error);
     }
-    @catch (NSException *exception) {
-        NSLog(@"[AMQPConnection] Problem disconnecting: %@", exception);
-    }
-    @finally {
-        amqp_destroy_connection(_internalConnection);
-    }
+    amqp_destroy_connection(_internalConnection);
 }
 
-- (void)connectToHost:(NSString *)host onPort:(int)port
+- (void)connectToHost:(NSString *)host onPort:(int)port error:(NSError * __autoreleasing *)error
 {
     const __darwin_time_t kSocketOpenTimeout = 30;
 
     struct timeval *timeout = malloc(sizeof(struct timeval));
     if (!timeout) {
-        [NSException raise:kAMQPConnectionException format:@"Out of memory"];
+        if (error) {
+            *error = [self errorForReason:NSLocalizedString(@"Out of memory.", nil)];
+            return;
+        }
     }
     timeout->tv_sec = kSocketOpenTimeout;
     timeout->tv_usec = 0;
@@ -79,8 +79,11 @@ NSString *const kAMQPOperationException     = @"AMQPException";
     _socket = amqp_tcp_socket_new(_internalConnection);
     if (!_socket) {
         _socket = NULL;
-		[NSException raise:kAMQPConnectionException format:@"Unable to create a TCP socket"];
-	}
+        if (error) {
+            *error = [self errorForReason:NSLocalizedString(@"Unable to create a TCP socket", nil)];
+            return;
+        }
+    }
 
     int status = amqp_socket_open_noblock(_socket, [host UTF8String], port, timeout);
 	if (status != AMQP_STATUS_OK) {
@@ -90,51 +93,76 @@ NSString *const kAMQPOperationException     = @"AMQPException";
         }
         _socket = NULL;
 
-		[NSException raise:kAMQPConnectionException format:@"Unable to open a TCP socket to host %@ on port %d. Error: %@ (%d)", host, port, [NSString stringWithUTF8String:amqp_error_string2(status)], status];
+        if (error) {
+            *error = [self errorForReason:[NSString stringWithFormat:NSLocalizedString(@"Unable to open a TCP socket to host %@ on port %d. Error: %@ (%d)", nil), host, port, [NSString stringWithUTF8String:amqp_error_string2(status)], status]];
+            return;
+        }
 	}
 }
 
-- (void)loginAsUser:(NSString *)username withPassword:(NSString *)password onVHost:(NSString *)vhost
+- (void)loginAsUser:(NSString *)username withPassword:(NSString *)password onVHost:(NSString *)vhost error:(NSError * __autoreleasing *)error
 {
 	amqp_rpc_reply_t reply = amqp_login(_internalConnection, [vhost UTF8String], 0, 131072, 0, AMQP_SASL_METHOD_PLAIN, [username UTF8String], [password UTF8String]);
 	
 	if (reply.reply_type != AMQP_RESPONSE_NORMAL) {
-		[NSException raise:kAMQPLoginException format:@"Failed to login to server as user %@ on vhost %@ using password %@: %@", username, vhost, password, [self errorDescriptionForReply:reply]];
+        if (error) {
+            *error = [self errorForReason:[NSString stringWithFormat:NSLocalizedString(@"Failed to login to server as user %@ on vhost %@ using password %@: %@", nil), username, vhost, password, [self errorDescriptionForReply:reply]]];
+            return;
+        }
 	}
 }
 
-- (void)disconnect
+- (void)disconnectWithError:(NSError * __autoreleasing *)error
 {
     if (!_socket) {
-        [NSException raise:kAMQPConnectionException format:@"Unable to disconnect from host: this instance of AMQPConnection has not been connected yet or the connection previously failed."];
+        if (error) {
+            *error = [self errorForReason:NSLocalizedString(@"Unable to disconnect from host: this instance of AMQPConnection has not been connected yet or the connection previously failed.", nil)];
+            return;
+        }
     }
 
     amqp_rpc_reply_t reply = amqp_connection_close(_internalConnection, AMQP_REPLY_SUCCESS);
 
 	if (reply.reply_type != AMQP_RESPONSE_NORMAL) {
-		[NSException raise:kAMQPConnectionException format:@"Unable to disconnect from host: %@", [self errorDescriptionForReply:reply]];
+        if (error) {
+            *error = [self errorForReason:[NSString stringWithFormat:NSLocalizedString(@"Unable to disconnect from host: %@", nil), [self errorDescriptionForReply:reply]]];
+            return;
+        }
 	}
 
     _socket = NULL;
 }
 
-- (void)checkLastOperation:(NSString *)context
+- (void)checkLastOperation:(NSString *)context error:(NSError * __autoreleasing *)error
 {
 	amqp_rpc_reply_t reply = amqp_get_rpc_reply(_internalConnection);
 	
 	if (reply.reply_type != AMQP_RESPONSE_NORMAL) {
-		[NSException raise:kAMQPOperationException format:@"%@: %@", context, [self errorDescriptionForReply:reply]];
+        if (error) {
+            *error = [self errorForReason:[NSString stringWithFormat:NSLocalizedString(@"%@: %@", nil), context, [self errorDescriptionForReply:reply]]];
+            return;
+        }
 	}
 }
 
-- (AMQPChannel *)openChannel
+- (AMQPChannel *)openChannelWithError:(NSError * __autoreleasing *)error
 {
 	AMQPChannel *channel = [[AMQPChannel alloc] init];
-	[channel openChannel:_nextChannel onConnection:self];
+	[channel openChannel:_nextChannel onConnection:self error:error];
 
 	_nextChannel++;
 
 	return channel;
+}
+
+- (NSError *)errorForReason:(NSString *)reason
+{
+    return [NSError errorWithDomain:kAMQPDomain
+                               code:kAMQPErrorCode
+                           userInfo:@{
+                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
+                                      NSLocalizedFailureReasonErrorKey: reason
+                                      }];
 }
 
 - (BOOL)check

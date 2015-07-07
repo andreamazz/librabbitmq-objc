@@ -43,14 +43,14 @@
     [self close];
 }
 
-- (void)openChannel:(amqp_channel_t)channel onConnection:(AMQPConnection *)connection
+- (void)openChannel:(amqp_channel_t)channel onConnection:(AMQPConnection *)connection error:(NSError * __autoreleasing *)error
 {
 	_connection = connection;
 	_internalChannel = channel;
 
 	amqp_channel_open(_connection.internalConnection, _internalChannel);
 
-	[_connection checkLastOperation:@"Failed to open a channel"];
+	[_connection checkLastOperation:@"Failed to open a channel" error:error];
 }
 
 - (void)close

@@ -31,7 +31,7 @@
 @property (readonly) AMQPChannel *channel;
 @property (readonly) AMQPQueue *queue;
 
-- (id)initForQueue:(AMQPQueue *)theQueue onChannel:(AMQPChannel *)theChannel useAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local;
+- (id)initForQueue:(AMQPQueue *)theQueue onChannel:(AMQPChannel *)theChannel useAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local error:(NSError * __autoreleasing *)error;
 - (void)dealloc;
 
 - (AMQPMessage *)pop;

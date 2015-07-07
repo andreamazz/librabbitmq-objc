@@ -21,23 +21,22 @@
 
 #import "AMQPObject.h"
 
-extern NSString *const kAMQPConnectionException;
-extern NSString *const kAMQPLoginException;
-extern NSString *const kAMQPOperationException;
+extern NSString *const kAMQPDomain;
+extern NSInteger const kAMQPErrorCode;
 
 @class AMQPChannel;
 
 @interface AMQPConnection : AMQPObject
 
-@property (nonatomic, readonly) amqp_connection_state_t internalConnection __deprecated;
+@property (nonatomic, readonly) amqp_connection_state_t internalConnection;
 
-- (void)connectToHost:(NSString *)host onPort:(int)port;
-- (void)loginAsUser:(NSString *)username withPassword:(NSString *)password onVHost:(NSString *)vhost;
-- (void)disconnect; // all channels have to be closed before closing the connection
+- (void)connectToHost:(NSString *)host onPort:(int)port error:(NSError * __autoreleasing *)error;
+- (void)loginAsUser:(NSString *)username withPassword:(NSString *)password onVHost:(NSString *)vhost error:(NSError * __autoreleasing *)error;
+- (void)disconnectWithError:(NSError * __autoreleasing *)error; // all channels have to be closed before closing the connection
 
-- (void)checkLastOperation:(NSString *)context __deprecated;
+- (void)checkLastOperation:(NSString *)context error:(NSError * __autoreleasing *)error;
 
-- (AMQPChannel *)openChannel;
+- (AMQPChannel *)openChannelWithError:(NSError * __autoreleasing *)error;
 
 - (BOOL)check;
 

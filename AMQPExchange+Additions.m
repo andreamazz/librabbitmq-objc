@@ -17,6 +17,7 @@
 - (void)publishMessage:(NSString *)body
              messageID:(NSString *)messageID
        usingRoutingKey:(NSString *)theRoutingKey
+                 error:(NSError * __autoreleasing *)error
 {
     const amqp_basic_properties_t properties = (amqp_basic_properties_t){
         .message_id = amqp_cstring_bytes([messageID UTF8String]),
@@ -30,7 +31,7 @@
                        &properties,
                        amqp_cstring_bytes([body UTF8String]));
 	
-	[self.channel.connection checkLastOperation:@"Failed to publish message"];
+	[self.channel.connection checkLastOperation:@"Failed to publish message" error:error];
 }
 
 // TODO: we need to add support for appID -- we can use this for versioning
@@ -38,6 +39,7 @@
              messageID:(NSString *)messageID
                payload:(NSString *)body
        usingRoutingKey:(NSString *)theRoutingKey
+                 error:(NSError * __autoreleasing *)error
 {
     const amqp_basic_properties_t properties = (amqp_basic_properties_t) {
         ._flags     = AMQP_BASIC_MESSAGE_ID_FLAG | AMQP_BASIC_TYPE_FLAG | AMQP_BASIC_CONTENT_TYPE_FLAG,
@@ -54,13 +56,14 @@
                        &properties,
                        amqp_cstring_bytes([body UTF8String]));
 	
-	[self.channel.connection checkLastOperation:@"Failed to publish message"];
+	[self.channel.connection checkLastOperation:@"Failed to publish message" error:error];
 }
 
 - (void)publishMessage:(NSString *)messageType
              messageID:(NSString *)messageID
            payloadData:(NSData *)body
        usingRoutingKey:(NSString *)theRoutingKey
+                 error:(NSError * __autoreleasing *)error
 {
     if (body.length == 0) {
         NSLog(@"payload is empty!!!");
@@ -86,7 +89,7 @@
                        amqp_bytes);
     
 	amqp_bytes_free(amqp_bytes);
-	[self.channel.connection checkLastOperation:@"Failed to publish message"];
+	[self.channel.connection checkLastOperation:@"Failed to publish message" error:error];
     
 }
 
@@ -96,6 +99,7 @@
        usingRoutingKey:(NSString *)routingKey
          correlationID:(NSString *)correlationID
          callbackQueue:(NSString *)callbackQueue
+                 error:(NSError * __autoreleasing *)error
 {
     amqp_basic_properties_t properties = (amqp_basic_properties_t) {
         ._flags     = (AMQP_BASIC_MESSAGE_ID_FLAG       |
@@ -126,7 +130,7 @@
                        amqp_body);
     
     amqp_bytes_free(amqp_body);
-    [self.channel.connection checkLastOperation:@"RPC call Invocation failed."];
+    [self.channel.connection checkLastOperation:@"RPC call Invocation failed." error:error];
 }
 
 @end

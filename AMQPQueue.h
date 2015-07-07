@@ -27,16 +27,16 @@
 
 @interface AMQPQueue : AMQPObject
 
-@property (readonly) amqp_bytes_t internalQueue __deprecated;
+@property (readonly) amqp_bytes_t internalQueue;
 @property (readonly) AMQPChannel *channel;
 
-- (id)initWithName:(NSString *)theName onChannel:(AMQPChannel *)theChannel isPassive:(BOOL)passive isExclusive:(BOOL)exclusive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete;
+- (id)initWithName:(NSString *)theName onChannel:(AMQPChannel *)theChannel isPassive:(BOOL)passive isExclusive:(BOOL)exclusive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
 
-- (void)bindToExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey;
-- (void)unbindFromExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey;
+- (void)bindToExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey error:(NSError * __autoreleasing *)error;
+- (void)unbindFromExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey error:(NSError * __autoreleasing *)error;
 
-- (void)deleteQueue;
+- (void)deleteQueueWithError:(NSError * __autoreleasing *)error;
 
-- (AMQPConsumer *)startConsumerWithAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local;
+- (AMQPConsumer *)startConsumerWithAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local error:(NSError * __autoreleasing *)error;
 
 @end

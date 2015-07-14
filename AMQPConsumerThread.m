@@ -208,21 +208,21 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
 
     _connection = [[AMQPConnection alloc] init];
     [_connection connectToHost:host onPort:port error:error];
-    if (error) {
+    if (*error) {
         return NO;
     }
     NSLog(@"<consumer_thread (%p) topic: %@ :: connected!>", self, _topic);
 
     NSLog(@"<consumer_thread (%p) topic: %@ :: authenticating user (%@)...>", self, _topic, username);
     [_connection loginAsUser:username withPassword:password onVHost:vhost error:error];
-    if (error) {
+    if (*error) {
         return NO;
     }
     NSLog(@"<consumer_thread (%p) topic: %@ :: authenticated!>", self, _topic);
 
     _channel = [_connection openChannelWithError:error];
 
-    if (error) {
+    if (*error) {
         return NO;
     }
     [_ttlManager addObject:kCheckConnectionToken ttl:kCheckConnectionInterval];
@@ -237,7 +237,7 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
                                                       isDurable:NO
                                                 getsAutoDeleted:YES
                                                           error:outError];
-    if (outError) {
+    if (*outError) {
         return NO;
     }
     return YES;
@@ -252,7 +252,7 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
                                    isDurable:NO
                              getsAutoDeleted:YES
                                        error:outError];
-    if (outError) {
+    if (*outError) {
         return NO;
     }
 
@@ -265,7 +265,7 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
 {
     _consumer = [_queue startConsumerWithAcknowledgements:NO isExclusive:NO receiveLocalMessages:NO error:outError];
 
-    if (outError) {
+    if (*outError) {
         return NO;
     }
     return YES;

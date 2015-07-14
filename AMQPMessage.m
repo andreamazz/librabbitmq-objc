@@ -59,6 +59,7 @@
 		
 		_read = NO;
 		_receivedAt = [receiveTimestamp copy];
+        _data = [NSData dataWithBytes:theBody.bytes length:theBody.len];
 
         if (!_contentType || [_contentType isEqualToString:@"t"]) {
             _body = AMQP_BYTES_TO_NSSTRING(theBody);

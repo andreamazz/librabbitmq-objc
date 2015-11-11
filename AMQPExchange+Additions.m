@@ -20,7 +20,9 @@
                  error:(NSError * __autoreleasing *)error
 {
     const amqp_basic_properties_t properties = (amqp_basic_properties_t){
+        ._flags = AMQP_BASIC_MESSAGE_ID_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG,
         .message_id = amqp_cstring_bytes([messageID UTF8String]),
+        .delivery_mode = 2,
     };
 	amqp_basic_publish(self.channel.connection.internalConnection,
                        self.channel.internalChannel,
@@ -77,7 +79,7 @@
     };
     
     amqp_bytes_t amqp_bytes = amqp_bytes_malloc(body.length);
-    [body getBytes:amqp_bytes.bytes];
+    [body getBytes:amqp_bytes.bytes length:body.length];
     
 	amqp_basic_publish(self.channel.connection.internalConnection,
                        self.channel.internalChannel,
@@ -118,7 +120,7 @@
     }
     
     amqp_bytes_t amqp_body = amqp_bytes_malloc(body.length);
-    [body getBytes:amqp_body.bytes];
+    [body getBytes:amqp_body.bytes length:body.length];
     
     amqp_basic_publish(self.channel.connection.internalConnection,
                        self.channel.internalChannel,

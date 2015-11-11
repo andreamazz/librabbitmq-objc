@@ -82,6 +82,40 @@ uint16_t amqp_queue_msg_ttl = 60000;
 	return self;
 }
 
+- (id)initPersistentWithName:(NSString *)theName
+         onChannel:(AMQPChannel *)theChannel
+         isPassive:(BOOL)passive
+       isExclusive:(BOOL)exclusive
+         isDurable:(BOOL)durable
+   getsAutoDeleted:(BOOL)autoDelete
+             error:(NSError * __autoreleasing *)error
+{
+    if ((self = [super init])) {
+        /* Empty Table of QueueArgs */
+        amqp_table_t queue_args;
+        amqp_table_entry_t entries[0];
+
+        queue_args.num_entries = 0;
+        queue_args.entries = entries;
+        
+        amqp_queue_declare_ok_t *declaration = amqp_queue_declare(theChannel.connection.internalConnection,
+                                                                  theChannel.internalChannel,
+                                                                  amqp_cstring_bytes([theName UTF8String]),
+                                                                  passive,
+                                                                  durable,
+                                                                  exclusive,
+                                                                  autoDelete,
+                                                                  queue_args);
+        
+        [theChannel.connection checkLastOperation:@"Failed to declare queue" error:error];
+        
+        _internalQueue = amqp_bytes_malloc_dup(declaration->queue);
+        _channel = theChannel;
+    }
+    
+    return self;
+}
+
 - (void)bindToExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey error:(NSError * __autoreleasing *)error
 {
 	amqp_queue_bind(self.channel.connection.internalConnection,

@@ -62,21 +62,6 @@
 	return self;
 }
 
-- (id)initForQueueName:(NSString *)theQueueName onChannel:(AMQPChannel *)theChannel useAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local error:(NSError * __autoreleasing *)error
-{
-    if ((self = [super init])) {
-		_channel = theChannel;
-		amqp_bytes_t _queueName = amqp_bytes_malloc_dup(amqp_cstring_bytes([theQueueName UTF8String]));
-		
-		amqp_basic_consume_ok_t *response = amqp_basic_consume(_channel.connection.internalConnection, _channel.internalChannel, _queueName, AMQP_EMPTY_BYTES, !local, !ack, exclusive, amqp_empty_table);
-		[_channel.connection checkLastOperation:@"Failed to start consumer" error:error];
-		
-		_internalConsumer = amqp_bytes_malloc_dup(response->consumer_tag);
-	}
-	
-	return self;
-}
-
 - (void)dealloc
 {
 	amqp_bytes_free(_internalConsumer);

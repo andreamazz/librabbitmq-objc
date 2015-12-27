@@ -23,6 +23,7 @@
 #import "AMQPExchange.h"
 #import "AMQPConsumer.h"
 #import "AMQPConnection.h"
+#import "AMQPMessage.h"
 
 uint16_t amqp_queue_ttl = 60000;
 uint16_t amqp_queue_msg_ttl = 60000;
@@ -143,6 +144,20 @@ uint16_t amqp_queue_msg_ttl = 60000;
                                                           error:error];
 	
 	return consumer;
+}
+
+- (AMQPMessage *)basicGet:(BOOL) ack {
+  amqp_rpc_reply_t reply = amqp_basic_get(self.channel.connection.internalConnection, 
+                                          self.channel.internalChannel, 
+                                          self.internalQueue, 
+                                          ack);
+  if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD){
+       amqp_basic_get_ok_t * d = (amqp_basic_get_ok_t *) reply.reply.decoded;
+//        printf("Message of type %s on queue %s retrieved Data.\n",(char *) d->routing_key.bytes, queue);
+//        printf("  Message: %s\n",  get_message(conn));
+   } else {
+      return NULL;
+   }
 }
 
 - (void)deleteQueueWithError:(NSError * __autoreleasing *)error

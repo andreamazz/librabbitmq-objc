@@ -24,6 +24,7 @@
 @class AMQPChannel;
 @class AMQPExchange;
 @class AMQPConsumer;
+@class AMQPMessage;
 
 @interface AMQPQueue : AMQPObject
 
@@ -40,5 +41,7 @@
 - (void)deleteQueueWithError:(NSError * __autoreleasing *)error;
 
 - (AMQPConsumer *)startConsumerWithAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local error:(NSError * __autoreleasing *)error;
+
+- (AMQPMessage *)basicGet:(BOOL) ack;
 
 @end

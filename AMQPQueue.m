@@ -146,18 +146,55 @@ uint16_t amqp_queue_msg_ttl = 60000;
 	return consumer;
 }
 
-- (AMQPMessage *)basicGet:(BOOL) ack {
-  amqp_rpc_reply_t reply = amqp_basic_get(self.channel.connection.internalConnection, 
-                                          self.channel.internalChannel, 
-                                          self.internalQueue, 
-                                          ack);
-  if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD){
-       amqp_basic_get_ok_t * d = (amqp_basic_get_ok_t *) reply.reply.decoded;
-//        printf("Message of type %s on queue %s retrieved Data.\n",(char *) d->routing_key.bytes, queue);
-//        printf("  Message: %s\n",  get_message(conn));
-   } else {
-      return NULL;
-   }
+- (NSString *)basicGet:(BOOL) ack {
+    amqp_rpc_reply_t reply = amqp_basic_get(self.channel.connection.internalConnection,
+                                            self.channel.internalChannel,
+                                            self.internalQueue,
+                                            ack);
+
+    if (reply.reply.id != AMQP_BASIC_GET_OK_METHOD)
+      return nil;
+
+    int result = -1;
+    amqp_frame_t frame;
+    size_t receivedBytes = 0;
+    size_t bodySize = -1;
+    amqp_bytes_t body;
+
+    result = amqp_simple_wait_frame(self.channel.connection.internalConnection, &frame);
+    if (result != 0)
+        return nil; /* failure waiting for frame */
+    if (frame.frame_type != AMQP_FRAME_HEADER)
+        return nil; /* expecting AMQP_FRAME_HEADER type of frame */
+      
+    /* This memory is valid until you call amqp_maybe_release_buffers() */
+    amqp_basic_properties_t *props = (amqp_basic_properties_t*)frame.payload.properties.decoded;
+      
+    bodySize = (size_t)frame.payload.properties.body_size;
+    receivedBytes = 0;
+    body = amqp_bytes_malloc(bodySize);
+      
+    // Frame #3+: body frames
+    while (receivedBytes < bodySize) {
+        result = amqp_simple_wait_frame(_channel.connection.internalConnection, &frame);
+        if (result < 0) {
+            amqp_bytes_free(body);
+            return nil;
+        }
+        
+        if (frame.frame_type != AMQP_FRAME_BODY) {
+            amqp_bytes_free(body);
+            return nil;
+        }
+          
+        receivedBytes += frame.payload.body_fragment.len;
+        memcpy(body.bytes, frame.payload.body_fragment.bytes, frame.payload.body_fragment.len);
+    }
+
+    NSString *reply_to = [NSString stringWithFormat:@"%s", (char *)props->reply_to.bytes];
+    amqp_maybe_release_buffers(_channel.connection.internalConnection);
+    amqp_bytes_free(body);
+    return reply_to;
 }
 
 - (void)deleteQueueWithError:(NSError * __autoreleasing *)error

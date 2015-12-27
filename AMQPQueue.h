@@ -42,6 +42,9 @@
 
 - (AMQPConsumer *)startConsumerWithAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local error:(NSError * __autoreleasing *)error;
 
-- (AMQPMessage *)basicGet:(BOOL) ack;
+/*
+ * TODO: This just pulls the reply_to field from the message for now - update to return full AMQPMessage
+ */
+- (NSString *)basicGet:(BOOL) ack;
 
 @end

@@ -34,6 +34,7 @@
 
 - (id)initWithConfiguration:(NSDictionary *)configuration
                 exchangeKey:(NSString *)exchangeKey
+                	   type:(NSString *)type
                       topic:(NSString *)topic
                    delegate:(id<AMQPConsumerThreadDelegate>)delegate
               callbackQueue:(dispatch_queue_t)callbackQueue;

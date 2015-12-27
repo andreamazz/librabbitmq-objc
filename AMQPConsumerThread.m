@@ -44,6 +44,7 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
 @property (strong) NSDictionary *configuration;
 @property (copy) NSString *topic;
 @property (copy) NSString *exchangeKey;
+@property (copy) NSString *type;
 
 @property (strong) AMQPTTLManager *ttlManager;
 @property (strong) AMQPConnection *connection;
@@ -72,6 +73,7 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
 
 - (id)initWithConfiguration:(NSDictionary *)configuration
                 exchangeKey:(NSString *)exchangeKey
+                       type:(NSString *)type
                       topic:(NSString *)topic
                    delegate:(id)theDelegate
               callbackQueue:(dispatch_queue_t)callbackQueue
@@ -79,6 +81,7 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
     if ((self = [super init])) {
         _configuration  = configuration;
         _exchangeKey    = exchangeKey;
+        _type           = type;
         _topic          = topic;
         _delegate       = theDelegate;
         
@@ -231,7 +234,10 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
 
 - (BOOL)_setupExchange:(NSError **)outError
 {
-    _exchange = [[AMQPExchange alloc] initFanoutExchangeWithName:_exchangeKey
+    if ([_exchangeKey length] == 0])
+        return YES;
+    _exchange = [[AMQPExchange alloc] initExchangeOfType:_type
+                                                      withName:_exchangeKey
                                                       onChannel:_channel
                                                       isPassive:YES
                                                       isDurable:YES

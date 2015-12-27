@@ -53,6 +53,11 @@
 	[_connection checkLastOperation:@"Failed to open a channel" error:error];
 }
 
+- (void)confirmSelect
+{
+	amqp_confirm_select(_connection.internalConnection, _internalChannel);
+}
+
 - (void)close
 {
     if (0 != _internalChannel) {

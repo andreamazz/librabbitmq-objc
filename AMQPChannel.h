@@ -29,6 +29,7 @@
 @property (readonly) AMQPConnection *connection;
 
 - (void)openChannel:(amqp_channel_t)channel onConnection:(AMQPConnection *)connection error:(NSError * __autoreleasing *)error;
+- (void)confirmSelect;
 - (void)close;
 
 @end

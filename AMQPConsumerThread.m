@@ -234,15 +234,17 @@ static const NSUInteger kMaxReconnectionAttempts = 3;
 
 - (BOOL)_setupExchange:(NSError **)outError
 {
-    if ([_exchangeKey length] == 0])
-        return YES;
-    _exchange = [[AMQPExchange alloc] initExchangeOfType:_type
+    if ([_exchangeKey length] == 0){
+        _exchange = [[AMQPExchange alloc] initExchangeOfType:_channel];
+    } else {
+        _exchange = [[AMQPExchange alloc] initExchangeOfType:_type
                                                       withName:_exchangeKey
                                                       onChannel:_channel
                                                       isPassive:YES
                                                       isDurable:YES
                                                 getsAutoDeleted:NO
                                                           error:outError];
+    }
     if (*outError) {
         return NO;
     }

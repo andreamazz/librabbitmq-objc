@@ -28,6 +28,8 @@
 @property (readonly) amqp_bytes_t internalExchange;
 @property (readonly) AMQPChannel *channel;
 
+- (id)initDefaultExchange:(AMQPChannel *)theChannel;
+
 - (id)initExchangeOfType:(NSString *)theType withName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
 - (id)initDirectExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
 - (id)initFanoutExchangeWithName:(NSString *)theName onChannel:(AMQPChannel*)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;

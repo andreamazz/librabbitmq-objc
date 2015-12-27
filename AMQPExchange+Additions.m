@@ -24,7 +24,8 @@
         .message_id = amqp_cstring_bytes([messageID UTF8String]),
         .delivery_mode = 2,
     };
-	amqp_basic_publish(self.channel.connection.internalConnection,
+    
+	  amqp_basic_publish(self.channel.connection.internalConnection,
                        self.channel.internalChannel,
                        self.internalExchange,
                        amqp_cstring_bytes([theRoutingKey UTF8String]),
@@ -49,6 +50,28 @@
         .content_type = amqp_cstring_bytes([messageType UTF8String]),
     };
   amqp_basic_publish(self.channel.connection.internalConnection,
+                       self.channel.internalChannel,
+                       self.internalExchange,
+                       amqp_cstring_bytes([theRoutingKey UTF8String]),
+                       NO,
+                       NO,
+                       &properties,
+                       amqp_cstring_bytes([body UTF8String]));
+  
+  [self.channel.connection checkLastOperation:@"Failed to publish message" error:error];
+}
+
+- (void)publishMessage:(NSString *)body
+       usingRoutingKey:(NSString *)theRoutingKey
+         callbackQueue:(NSString *)callbackQueue
+                 error:(NSError * __autoreleasing *)error
+{
+    const amqp_basic_properties_t properties = (amqp_basic_properties_t){
+        ._flags = AMQP_BASIC_REPLY_TO_FLAG,
+        .reply_to = amqp_cstring_bytes([callbackQueue UTF8String]),
+    };
+    
+    amqp_basic_publish(self.channel.connection.internalConnection,
                        self.channel.internalChannel,
                        self.internalExchange,
                        amqp_cstring_bytes([theRoutingKey UTF8String]),

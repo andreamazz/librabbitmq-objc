@@ -91,13 +91,6 @@ uint16_t amqp_queue_msg_ttl = 60000;
              error:(NSError * __autoreleasing *)error
 {
     if ((self = [super init])) {
-        /* Empty Table of QueueArgs */
-        amqp_table_t queue_args;
-        amqp_table_entry_t entries[0];
-
-        queue_args.num_entries = 0;
-        queue_args.entries = entries;
-        
         amqp_queue_declare_ok_t *declaration = amqp_queue_declare(theChannel.connection.internalConnection,
                                                                   theChannel.internalChannel,
                                                                   amqp_cstring_bytes([theName UTF8String]),
@@ -105,7 +98,7 @@ uint16_t amqp_queue_msg_ttl = 60000;
                                                                   durable,
                                                                   exclusive,
                                                                   autoDelete,
-                                                                  queue_args);
+                                                                  amqp_empty_table);
         
         [theChannel.connection checkLastOperation:@"Failed to declare queue" error:error];
         

@@ -41,6 +41,7 @@
              messageID:(NSString *)messageID
            messageType:(NSString *)messageType
        usingRoutingKey:(NSString *)theRoutingKey
+               replyTo:(NSString *)replyTo
                  error:(NSError * __autoreleasing *)error
 {
     const amqp_basic_properties_t properties = (amqp_basic_properties_t){
@@ -49,7 +50,12 @@
         .delivery_mode = 2,
         .content_type = amqp_cstring_bytes([messageType UTF8String]),
     };
-  amqp_basic_publish(self.channel.connection.internalConnection,
+    if (replyTo) {
+        properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;
+        properties.reply_to = amqp_cstring_bytes([replyTo UTF8String]);
+    }
+    
+    amqp_basic_publish(self.channel.connection.internalConnection,
                        self.channel.internalChannel,
                        self.internalExchange,
                        amqp_cstring_bytes([theRoutingKey UTF8String]),

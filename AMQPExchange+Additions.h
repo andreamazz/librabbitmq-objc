@@ -21,6 +21,7 @@
              messageID:(NSString *)messageID
            messageType:(NSString *)messageType
        usingRoutingKey:(NSString *)theRoutingKey
+               replyTo:(NSString *)replyTo
                  error:(NSError * __autoreleasing *)error;
 
 - (void)publishMessage:(NSString *)body

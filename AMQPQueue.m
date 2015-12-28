@@ -153,12 +153,33 @@ uint16_t amqp_queue_msg_ttl = 60000;
 	return consumer;
 }
 
-- (NSString *)basicGet:(BOOL) ack {
+NSError *frameError = [NSError errorWithDomain:kAMQPDomain
+                               code:kAMQPErrorCode
+                           userInfo:@{
+                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
+                                      NSLocalizedFailureReasonErrorKey: @"Failure waiting for frame."
+                                      }];
+
+NSError *headerError = [NSError errorWithDomain:kAMQPDomain
+                                     code:kAMQPErrorCode
+                                 userInfo:@{
+                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
+                                      NSLocalizedFailureReasonErrorKey: @"Expecting AMQP_FRAME_HEADER type of frame."
+                                      }];
+NSError *bodyError = [NSError errorWithDomain:kAMQPDomain
+                                     code:kAMQPErrorCode
+                                 userInfo:@{
+                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
+                                      NSLocalizedFailureReasonErrorKey: @"Expecting AMQP_FRAME_BODY type of frame."
+                                      }];
+
+- (NSString *)basicGet:(BOOL) ack error:(NSError * __autoreleasing *)error {
     amqp_rpc_reply_t reply = amqp_basic_get(self.channel.connection.internalConnection,
                                             self.channel.internalChannel,
                                             self.internalQueue,
                                             ack);
 
+    [self.channel.connection checkLastOperation:@"Basic get from queue failed" error:error];
     if (reply.reply.id != AMQP_BASIC_GET_OK_METHOD)
       return nil;
 
@@ -169,10 +190,14 @@ uint16_t amqp_queue_msg_ttl = 60000;
     amqp_bytes_t body;
 
     result = amqp_simple_wait_frame(self.channel.connection.internalConnection, &frame);
-    if (result != 0)
-        return nil; /* failure waiting for frame */
-    if (frame.frame_type != AMQP_FRAME_HEADER)
-        return nil; /* expecting AMQP_FRAME_HEADER type of frame */
+    if (result != 0){
+        *error = frameError;
+        return nil; 
+    }
+    if (frame.frame_type != AMQP_FRAME_HEADER){
+        *error = headerError;
+        return nil;
+    }
       
     /* This memory is valid until you call amqp_maybe_release_buffers() */
     amqp_basic_properties_t *props = (amqp_basic_properties_t*)frame.payload.properties.decoded;
@@ -185,11 +210,13 @@ uint16_t amqp_queue_msg_ttl = 60000;
     while (receivedBytes < bodySize) {
         result = amqp_simple_wait_frame(_channel.connection.internalConnection, &frame);
         if (result < 0) {
+            *error = frameError;
             amqp_bytes_free(body);
             return nil;
         }
         
         if (frame.frame_type != AMQP_FRAME_BODY) {
+            *error = bodyError;
             amqp_bytes_free(body);
             return nil;
         }

@@ -45,6 +45,7 @@
 /*
  * TODO: This just pulls the reply_to field from the message for now - update to return full AMQPMessage
  */
+- (NSError *) formatError:(NSString *)reason;
 - (NSString *)basicGet:(BOOL)ack error:(NSError * __autoreleasing *)error;
 
 @end

@@ -153,25 +153,15 @@ uint16_t amqp_queue_msg_ttl = 60000;
 	return consumer;
 }
 
-NSError *frameError = [NSError errorWithDomain:kAMQPDomain
+- (NSError *) formatError:(NSString *)reason {
+    NSError *err = [NSError errorWithDomain:kAMQPDomain
                                code:kAMQPErrorCode
                            userInfo:@{
                                       NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
-                                      NSLocalizedFailureReasonErrorKey: @"Failure waiting for frame."
+                                      NSLocalizedFailureReasonErrorKey: reason
                                       }];
-
-NSError *headerError = [NSError errorWithDomain:kAMQPDomain
-                                     code:kAMQPErrorCode
-                                 userInfo:@{
-                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
-                                      NSLocalizedFailureReasonErrorKey: @"Expecting AMQP_FRAME_HEADER type of frame."
-                                      }];
-NSError *bodyError = [NSError errorWithDomain:kAMQPDomain
-                                     code:kAMQPErrorCode
-                                 userInfo:@{
-                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
-                                      NSLocalizedFailureReasonErrorKey: @"Expecting AMQP_FRAME_BODY type of frame."
-                                      }];
+    return err;
+}
 
 - (NSString *)basicGet:(BOOL) ack error:(NSError * __autoreleasing *)error {
     amqp_rpc_reply_t reply = amqp_basic_get(self.channel.connection.internalConnection,
@@ -191,11 +181,11 @@ NSError *bodyError = [NSError errorWithDomain:kAMQPDomain
 
     result = amqp_simple_wait_frame(self.channel.connection.internalConnection, &frame);
     if (result != 0){
-        *error = frameError;
+        *error = formatError(@"Failure waiting for frame.");
         return nil; 
     }
     if (frame.frame_type != AMQP_FRAME_HEADER){
-        *error = headerError;
+        *error = formatError(@"Expecting AMQP_FRAME_HEADER type of frame.");
         return nil;
     }
       
@@ -210,13 +200,13 @@ NSError *bodyError = [NSError errorWithDomain:kAMQPDomain
     while (receivedBytes < bodySize) {
         result = amqp_simple_wait_frame(_channel.connection.internalConnection, &frame);
         if (result < 0) {
-            *error = frameError;
+            *error = formatError(@"Failure waiting for frame.");
             amqp_bytes_free(body);
             return nil;
         }
         
         if (frame.frame_type != AMQP_FRAME_BODY) {
-            *error = bodyError;
+            *error = formatError(@"Expecting AMQP_FRAME_BODY type of frame.");
             amqp_bytes_free(body);
             return nil;
         }
@@ -225,7 +215,7 @@ NSError *bodyError = [NSError errorWithDomain:kAMQPDomain
         memcpy(body.bytes, frame.payload.body_fragment.bytes, frame.payload.body_fragment.len);
     }
 
-    NSString *reply_to = AMQP_BYTES_TO_NSSTRING(props->reply_to.bytes);
+    NSString *reply_to = AMQP_BYTES_TO_NSSTRING(props->reply_to);
     amqp_maybe_release_buffers(_channel.connection.internalConnection);
     amqp_bytes_free(body);
     return reply_to;

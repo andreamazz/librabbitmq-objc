@@ -41,14 +41,19 @@
              messageID:(NSString *)messageID
            messageType:(NSString *)messageType
        usingRoutingKey:(NSString *)theRoutingKey
+         correlationID:(NSString *)correlationID
                replyTo:(NSString *)replyTo
                  error:(NSError * __autoreleasing *)error
 {
-    const amqp_basic_properties_t properties = (amqp_basic_properties_t){
-        ._flags = AMQP_BASIC_MESSAGE_ID_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG | AMQP_BASIC_CONTENT_TYPE_FLAG,
+    amqp_basic_properties_t properties = (amqp_basic_properties_t){
+        ._flags     = (AMQP_BASIC_MESSAGE_ID_FLAG       |
+                       AMQP_BASIC_TYPE_FLAG             |
+                       AMQP_BASIC_CONTENT_TYPE_FLAG     |
+                       AMQP_BASIC_CORRELATION_ID_FLAG),
         .message_id = amqp_cstring_bytes([messageID UTF8String]),
         .delivery_mode = 2,
         .content_type = amqp_cstring_bytes([messageType UTF8String]),
+        .correlation_id = amqp_cstring_bytes([correlationID UTF8String]),
     };
     if (replyTo) {
         properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;

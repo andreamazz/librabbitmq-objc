@@ -21,6 +21,7 @@
              messageID:(NSString *)messageID
            messageType:(NSString *)messageType
        usingRoutingKey:(NSString *)theRoutingKey
+         correlationID:(NSString *)correlationID
                replyTo:(NSString *)replyTo
                  error:(NSError * __autoreleasing *)error;
 

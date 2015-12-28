@@ -58,6 +58,11 @@
 	amqp_confirm_select(_connection.internalConnection, _internalChannel);
 }
 
+- (void)qos:(int)prefetchCount
+{
+	amqp_basic_qos(0, prefetchCount, false);
+}
+
 - (void)close
 {
     if (0 != _internalChannel) {

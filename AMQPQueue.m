@@ -169,9 +169,15 @@ uint16_t amqp_queue_msg_ttl = 60000;
                                             self.internalQueue,
                                             ack);
 
+    /* No error, just no message - retry? */
+    if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD){
+        return nil;
+    }
     [self.channel.connection checkLastOperation:@"Basic get from queue failed" error:error];
-    if (reply.reply.id != AMQP_BASIC_GET_OK_METHOD)
-      return nil;
+    if (reply.reply.id != AMQP_BASIC_GET_OK_METHOD){
+        *error = [self formatError:@"Basic get from queue failed."];
+        return nil;
+    }
 
     int result = -1;
     amqp_frame_t frame;

@@ -181,11 +181,11 @@ uint16_t amqp_queue_msg_ttl = 60000;
 
     result = amqp_simple_wait_frame(self.channel.connection.internalConnection, &frame);
     if (result != 0){
-        *error = formatError(@"Failure waiting for frame.");
+        *error = [self formatError:@"Failure waiting for frame."];
         return nil; 
     }
     if (frame.frame_type != AMQP_FRAME_HEADER){
-        *error = formatError(@"Expecting AMQP_FRAME_HEADER type of frame.");
+        *error = [self formatError:@"Expecting AMQP_FRAME_HEADER type of frame."];
         return nil;
     }
       
@@ -200,13 +200,13 @@ uint16_t amqp_queue_msg_ttl = 60000;
     while (receivedBytes < bodySize) {
         result = amqp_simple_wait_frame(_channel.connection.internalConnection, &frame);
         if (result < 0) {
-            *error = formatError(@"Failure waiting for frame.");
+            *error = [self formatError:@"Failure waiting for frame."];
             amqp_bytes_free(body);
             return nil;
         }
         
         if (frame.frame_type != AMQP_FRAME_BODY) {
-            *error = formatError(@"Expecting AMQP_FRAME_BODY type of frame.");
+            *error = [self formatError:@"Expecting AMQP_FRAME_BODY type of frame."];
             amqp_bytes_free(body);
             return nil;
         }

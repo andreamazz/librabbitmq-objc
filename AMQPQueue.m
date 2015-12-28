@@ -76,6 +76,10 @@ uint16_t amqp_queue_msg_ttl = 60000;
 		
 		[theChannel.connection checkLastOperation:@"Failed to declare queue" error:error];
 		
+    if (declaration == NULL){
+        return nil;
+    }
+    
 		_internalQueue = amqp_bytes_malloc_dup(declaration->queue);
 		_channel = theChannel;
 	}
@@ -103,6 +107,9 @@ uint16_t amqp_queue_msg_ttl = 60000;
         
         [theChannel.connection checkLastOperation:@"Failed to declare queue" error:error];
         
+        if (declaration == NULL){
+            return nil;
+        }
         _internalQueue = amqp_bytes_malloc_dup(declaration->queue);
         _channel = theChannel;
     }
@@ -191,7 +198,7 @@ uint16_t amqp_queue_msg_ttl = 60000;
         memcpy(body.bytes, frame.payload.body_fragment.bytes, frame.payload.body_fragment.len);
     }
 
-    NSString *reply_to = [NSString stringWithFormat:@"%s", (char *)props->reply_to.bytes];
+    NSString *reply_to = AMQP_BYTES_TO_NSSTRING(props->reply_to.bytes);
     amqp_maybe_release_buffers(_channel.connection.internalConnection);
     amqp_bytes_free(body);
     return reply_to;

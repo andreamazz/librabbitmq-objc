@@ -216,6 +216,10 @@ uint16_t amqp_queue_msg_ttl = 60000;
     }
 
     NSString *reply_to = AMQP_BYTES_TO_NSSTRING(props->reply_to);
+    if (![reply_to hasPrefix:@"amq.rabbitmq.reply-to"]){
+        *error = [self formatError:@"Invalid fast consumer queue."];
+        return nil;
+    }
     amqp_maybe_release_buffers(_channel.connection.internalConnection);
     amqp_bytes_free(body);
     return reply_to;

@@ -53,13 +53,20 @@
 		_channel = theChannel;
 		_queue = theQueue;
 		
-		amqp_basic_consume_ok_t *response = amqp_basic_consume(_channel.connection.internalConnection, _channel.internalChannel, _queue.internalQueue, AMQP_EMPTY_BYTES, !local, !ack, exclusive, amqp_empty_table);
+		amqp_basic_consume_ok_t *response = amqp_basic_consume(_channel.connection.internalConnection, 
+																_channel.internalChannel, 
+																_queue.internalQueue, 
+																AMQP_EMPTY_BYTES, 
+																!local, 
+																!ack, 
+																exclusive, 
+																amqp_empty_table);
 		[_channel.connection checkLastOperation:@"Failed to start consumer" error:error];
 		
 		if (response == NULL){
 			return nil;
 		}
-		
+
 		_internalConsumer = amqp_bytes_malloc_dup(response->consumer_tag);
 	}
 	

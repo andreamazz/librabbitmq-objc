@@ -4,7 +4,7 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Version: MIT
  *
- * Portions created by Alan Antonuk are Copyright (c) 2012-2013
+ * Portions created by Alan Antonuk are Copyright (c) 2012-2014
  * Alan Antonuk. All Rights Reserved.
  *
  * Portions created by VMware are Copyright (c) 2007-2012 VMware, Inc.
@@ -223,9 +223,27 @@ AMQP_BEGIN_DECLS
  */
 
 #define AMQP_VERSION_MAJOR 0
-#define AMQP_VERSION_MINOR 5
-#define AMQP_VERSION_PATCH 2
+#define AMQP_VERSION_MINOR 8
+#define AMQP_VERSION_PATCH 0
 #define AMQP_VERSION_IS_RELEASE 0
+
+
+/**
+ * \def AMQP_VERSION_CODE
+ *
+ * Helper macro to geneate a packed version code suitable for
+ * comparison with AMQP_VERSION.
+ *
+ * \sa amqp_version_number() AMQP_VERSION_MAJOR, AMQP_VERSION_MINOR,
+ *     AMQP_VERSION_PATCH, AMQP_VERSION_IS_RELEASE, AMQP_VERSION
+ *
+ * \since v0.6.1
+ */
+#define AMQP_VERSION_CODE(major, minor, patch, release) \
+    ((major << 24) | \
+     (minor << 16) | \
+     (patch << 8)  | \
+     (release))
 
 
 /**
@@ -242,14 +260,14 @@ AMQP_BEGIN_DECLS
  * 0x02030401
  *
  * \sa amqp_version_number() AMQP_VERSION_MAJOR, AMQP_VERSION_MINOR,
- *     AMQP_VERSION_PATCH, AMQP_VERSION_IS_RELEASE
+ *     AMQP_VERSION_PATCH, AMQP_VERSION_IS_RELEASE, AMQP_VERSION_CODE
  *
  * \since v0.4.0
  */
-#define AMQP_VERSION ((AMQP_VERSION_MAJOR << 24) | \
-                      (AMQP_VERSION_MINOR << 16) | \
-                      (AMQP_VERSION_PATCH << 8)  | \
-                      (AMQP_VERSION_IS_RELEASE))
+#define AMQP_VERSION AMQP_VERSION_CODE(AMQP_VERSION_MAJOR, \
+                                       AMQP_VERSION_MINOR, \
+                                       AMQP_VERSION_PATCH, \
+                                       AMQP_VERSION_IS_RELEASE)
 
 /** \cond HIDE_FROM_DOXYGEN */
 #define AMQ_STRINGIFY(s) AMQ_STRINGIFY_HELPER(s)
@@ -634,7 +652,9 @@ typedef struct amqp_rpc_reply_t_ {
  * \since v0.1
  */
 typedef enum amqp_sasl_method_enum_ {
-  AMQP_SASL_METHOD_PLAIN = 0      /**< the PLAIN SASL method for authentication to the broker */
+  AMQP_SASL_METHOD_UNDEFINED = -1, /**< Invalid SASL method */
+  AMQP_SASL_METHOD_PLAIN = 0,      /**< the PLAIN SASL method for authentication to the broker */
+  AMQP_SASL_METHOD_EXTERNAL = 1    /**< the EXTERNAL SASL method for authentication to the broker */
 } amqp_sasl_method_enum;
 
 /**
@@ -656,6 +676,7 @@ typedef struct amqp_socket_t_ amqp_socket_t;
  *
  * \since v0.4.0
  */
+/* NOTE: When updating this enum, update the strings in librabbitmq/amqp_api.c */
 typedef enum amqp_status_enum_
 {
   AMQP_STATUS_OK =                         0x0,     /**< Operation successful */
@@ -698,12 +719,23 @@ typedef enum amqp_status_enum_
                                                         heartbeat */
   AMQP_STATUS_UNEXPECTED_STATE =          -0x0010, /**< Unexpected protocol
                                                         state */
+  AMQP_STATUS_SOCKET_CLOSED =             -0x0011, /**< Underlying socket is
+                                                        closed */
+  AMQP_STATUS_SOCKET_INUSE =              -0x0012, /**< Underlying socket is
+                                                        already open */
+  AMQP_STATUS_BROKER_UNSUPPORTED_SASL_METHOD = -0x0013, /**< Broker does not
+                                                          support the requested
+                                                          SASL mechanism */
+  AMQP_STATUS_UNSUPPORTED =               -0x0014, /**< Parameter is unsupported
+                                                     in this version */
+  _AMQP_STATUS_NEXT_VALUE =               -0x0015, /**< Internal value */
 
   AMQP_STATUS_TCP_ERROR =                 -0x0100, /**< A generic TCP error
                                                         occurred */
   AMQP_STATUS_TCP_SOCKETLIB_INIT_ERROR =  -0x0101, /**< An error occurred trying
                                                         to initialize the
                                                         socket library*/
+  _AMQP_STATUS_TCP_NEXT_VALUE =           -0x0102, /**< Internal value */
 
   AMQP_STATUS_SSL_ERROR =                 -0x0200, /**< A generic SSL error
                                                         occurred. */
@@ -713,7 +745,8 @@ typedef enum amqp_status_enum_
                                                         failed */
   AMQP_STATUS_SSL_PEER_VERIFY_FAILED =    -0x0202, /**< SSL validation of peer
                                                         certificate failed. */
-  AMQP_STATUS_SSL_CONNECTION_FAILED =     -0x0203  /**< SSL handshake failed. */
+  AMQP_STATUS_SSL_CONNECTION_FAILED =     -0x0203, /**< SSL handshake failed. */
+  _AMQP_STATUS_SSL_NEXT_VALUE =           -0x0204  /**< Internal value */
 } amqp_status_enum;
 
 /**
@@ -729,7 +762,7 @@ typedef enum {
 
 AMQP_END_DECLS
 
-#include "amqp_framing.h"
+#include <amqp_framing.h>
 
 AMQP_BEGIN_DECLS
 
@@ -1088,6 +1121,36 @@ AMQP_CALL amqp_tune_connection(amqp_connection_state_t state,
 AMQP_PUBLIC_FUNCTION
 int
 AMQP_CALL amqp_get_channel_max(amqp_connection_state_t state);
+
+/**
+ * Get the maximum size of an frame the connection can handle
+ *
+ * The maximum size of an frame is set when connection negotiation takes
+ * place in amqp_login() or amqp_login_with_properties().
+ *
+ * \param [in] state the connection object
+ * \return the maximum size of an frame.
+ *
+ * \since v0.6
+ */
+AMQP_PUBLIC_FUNCTION
+int
+AMQP_CALL amqp_get_frame_max(amqp_connection_state_t state);
+
+/**
+ * Get the number of seconds between heartbeats of the connection
+ *
+ * The number of seconds between heartbeats is set when connection
+ * negotiation takes place in amqp_login() or amqp_login_with_properties().
+ *
+ * \param [in] state the connection object
+ * \return the number of seconds between heartbeats.
+ *
+ * \since v0.6
+ */
+AMQP_PUBLIC_FUNCTION
+int
+AMQP_CALL amqp_get_heartbeat(amqp_connection_state_t state);
 
 /**
  * Destroys an amqp_connection_state_t object
@@ -1688,7 +1751,9 @@ AMQP_CALL amqp_get_rpc_reply(amqp_connection_state_t state);
  * \param [in] channel_max the limit for number of channels for the connection.
  *              0 means no limit, and is a good default (AMQP_DEFAULT_MAX_CHANNELS)
  *              Note that the maximum number of channels the protocol supports
- *              is 65535 (2^16, with the 0-channel reserved)
+ *              is 65535 (2^16, with the 0-channel reserved). The server can
+ *              set a lower channel_max and then the client will use the lowest
+ *              of the two
  * \param [in] frame_max the maximum size of an AMQP frame on the wire to
  *              request of the broker for this connection. 4096 is the minimum
  *              size, 2^31-1 is the maximum, a good default is 131072 (128KB), or
@@ -1745,7 +1810,9 @@ AMQP_CALL amqp_login(amqp_connection_state_t state, char const *vhost,
  * \param [in] channel_max the limit for the number of channels for the connection.
  *             0 means no limit, and is a good default (AMQP_DEFAULT_MAX_CHANNELS)
  *             Note that the maximum number of channels the protocol supports
- *             is 65535 (2^16, with the 0-channel reserved)
+ *             is 65535 (2^16, with the 0-channel reserved). The server can
+ *             set a lower channel_max and then the client will use the lowest
+ *             of the two
  * \param [in] frame_max the maximum size of an AMQP frame ont he wire to
  *              request of the broker for this connection. 4096 is the minimum
  *              size, 2^31-1 is the maximum, a good default is 131072 (128KB), or
@@ -1802,7 +1869,6 @@ struct amqp_basic_properties_t_;
  * a non-existent exchange) will not be reflected in the return value of this
  * function.
  *
- * in the return value from this function.
  * \param [in] state the connection object
  * \param [in] channel the channel identifier
  * \param [in] exchange the exchange on the broker to publish to
@@ -2086,7 +2152,7 @@ AMQP_CALL amqp_encode_table(amqp_bytes_t encoded, amqp_table_t *input, size_t *o
  */
 AMQP_PUBLIC_FUNCTION
 int
-AMQP_CALL amqp_table_clone(amqp_table_t *original, amqp_table_t *clone, amqp_pool_t *pool);
+AMQP_CALL amqp_table_clone(const amqp_table_t *original, amqp_table_t *clone, amqp_pool_t *pool);
 
 /**
  * A message object
@@ -2240,6 +2306,10 @@ AMQP_CALL amqp_default_connection_info(struct amqp_connection_info *parsed);
  *  amqp://guest:guest\@localhost:5672//
  *  amqp://guest:guest\@localhost/myvhost
  *
+ *  Any missing parts of the URL will be set to the defaults specified in
+ *  amqp_default_connection_info. For amqps: URLs the default port will be set
+ *  to 5671 instead of 5672 for non-SSL URLs.
+ *
  * \note This function modifies url parameter.
  *
  * \param [in] url URI to parse, note that this parameter is modified by the
@@ -2345,6 +2415,22 @@ amqp_get_socket(amqp_connection_state_t state);
 AMQP_PUBLIC_FUNCTION
 amqp_table_t *
 amqp_get_server_properties(amqp_connection_state_t state);
+
+/**
+ * Get the client properties table
+ *
+ * Get the properties that were passed to the broker on connection.
+ *
+ * \param [in] state the connection object
+ * \return a pointer to an amqp_table_t containing the properties advertised
+ *  by the client on connection. The connection object owns the table, it
+ *  should not be modified.
+ *
+ * \since v0.7.0
+ */
+AMQP_PUBLIC_FUNCTION
+amqp_table_t *
+amqp_get_client_properties(amqp_connection_state_t state);
 
 AMQP_END_DECLS
 

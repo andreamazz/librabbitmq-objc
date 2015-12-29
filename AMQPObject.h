@@ -19,6 +19,8 @@
 
 #import <Foundation/Foundation.h>
 
+#define HAVE_HTONLL
+
 #import "amqp.h"
 
 @interface AMQPObject : NSObject

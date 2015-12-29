@@ -42,10 +42,25 @@
 	amqp_bytes_free(_internalExchange);
 }
 
+/**
+ * amqp_exchange_declare
+ *
+ * @param [in] state connection state
+ * @param [in] channel the channel to do the RPC on
+ * @param [in] exchange exchange
+ * @param [in] type type
+ * @param [in] passive passive
+ * @param [in] durable durable
+ * @param [in] auto_delete auto_delete
+ * @param [in] internal internal
+ * @param [in] arguments arguments
+ * @returns amqp_exchange_declare_ok_t
+ */
+
 - (id)initDefaultExchange:(AMQPChannel *)theChannel
 {
     if ((self = [super init])) {
-		_internalExchange = amqp_bytes_malloc_dup(amqp_cstring_bytes([@"" UTF8String]));
+		_internalExchange = amqp_bytes_malloc_dup(amqp_empty_bytes);
 		_channel = theChannel;
 	}
 	
@@ -55,7 +70,15 @@
 - (id)initExchangeOfType:(NSString *)theType withName:(NSString *)theName onChannel:(AMQPChannel *)theChannel isPassive:(BOOL)passive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error
 {
     if ((self = [super init])) {
-		amqp_exchange_declare(theChannel.connection.internalConnection, theChannel.internalChannel, amqp_cstring_bytes([theName UTF8String]), amqp_cstring_bytes([theType UTF8String]), passive, durable, AMQP_EMPTY_TABLE);
+		amqp_exchange_declare(theChannel.connection.internalConnection,
+                              theChannel.internalChannel,
+                              amqp_cstring_bytes([theName UTF8String]),
+                              amqp_cstring_bytes([theType UTF8String]),
+                              passive,
+                              durable,
+                              autoDelete,
+                              NO,
+                              AMQP_EMPTY_TABLE);
 		
 		[theChannel.connection checkLastOperation:@"Failed to declare exchange" error:error];
 		

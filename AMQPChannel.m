@@ -60,7 +60,7 @@
 
 - (void)qos:(int)prefetchCount
 {
-	amqp_basic_qos(0, prefetchCount, false);
+	amqp_basic_qos(_connection.internalConnection, _internalChannel, 0, prefetchCount, false);
 }
 
 - (void)close

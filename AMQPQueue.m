@@ -23,6 +23,7 @@
 #import "AMQPExchange.h"
 #import "AMQPConsumer.h"
 #import "AMQPConnection.h"
+#import "AMQPMessage.h"
 
 uint16_t amqp_queue_ttl = 60000;
 uint16_t amqp_queue_msg_ttl = 60000;
@@ -75,11 +76,45 @@ uint16_t amqp_queue_msg_ttl = 60000;
 		
 		[theChannel.connection checkLastOperation:@"Failed to declare queue" error:error];
 		
+    if (declaration == NULL){
+        return nil;
+    }
+    
 		_internalQueue = amqp_bytes_malloc_dup(declaration->queue);
 		_channel = theChannel;
 	}
 	
 	return self;
+}
+
+- (id)initPersistentWithName:(NSString *)theName
+         onChannel:(AMQPChannel *)theChannel
+         isPassive:(BOOL)passive
+       isExclusive:(BOOL)exclusive
+         isDurable:(BOOL)durable
+   getsAutoDeleted:(BOOL)autoDelete
+             error:(NSError * __autoreleasing *)error
+{
+    if ((self = [super init])) {
+        amqp_queue_declare_ok_t *declaration = amqp_queue_declare(theChannel.connection.internalConnection,
+                                                                  theChannel.internalChannel,
+                                                                  amqp_cstring_bytes([theName UTF8String]),
+                                                                  passive,
+                                                                  durable,
+                                                                  exclusive,
+                                                                  autoDelete,
+                                                                  amqp_empty_table);
+        
+        [theChannel.connection checkLastOperation:@"Failed to declare queue" error:error];
+        
+        if (declaration == NULL){
+            return nil;
+        }
+        _internalQueue = amqp_bytes_malloc_dup(declaration->queue);
+        _channel = theChannel;
+    }
+    
+    return self;
 }
 
 - (void)bindToExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey error:(NSError * __autoreleasing *)error
@@ -116,6 +151,84 @@ uint16_t amqp_queue_msg_ttl = 60000;
                                                           error:error];
 	
 	return consumer;
+}
+
+- (NSError *) formatError:(NSString *)reason {
+    NSError *err = [NSError errorWithDomain:kAMQPDomain
+                               code:kAMQPErrorCode
+                           userInfo:@{
+                                      NSLocalizedDescriptionKey: NSLocalizedString(@"AMQP Operation was unsuccessful.", nil),
+                                      NSLocalizedFailureReasonErrorKey: reason
+                                      }];
+    return err;
+}
+
+- (NSString *)basicGet:(BOOL) ack error:(NSError * __autoreleasing *)error {
+    amqp_rpc_reply_t reply = amqp_basic_get(self.channel.connection.internalConnection,
+                                            self.channel.internalChannel,
+                                            self.internalQueue,
+                                            ack);
+
+    /* No error, just no message - retry? */
+    if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD){
+        return nil;
+    }
+    [self.channel.connection checkLastOperation:@"Basic get from queue failed" error:error];
+    if (reply.reply.id != AMQP_BASIC_GET_OK_METHOD){
+        *error = [self formatError:@"Basic get from queue failed."];
+        return nil;
+    }
+
+    int result = -1;
+    amqp_frame_t frame;
+    size_t receivedBytes = 0;
+    size_t bodySize = -1;
+    amqp_bytes_t body;
+
+    result = amqp_simple_wait_frame(self.channel.connection.internalConnection, &frame);
+    if (result != 0){
+        *error = [self formatError:@"Failure waiting for frame."];
+        return nil; 
+    }
+    if (frame.frame_type != AMQP_FRAME_HEADER){
+        *error = [self formatError:@"Expecting AMQP_FRAME_HEADER type of frame."];
+        return nil;
+    }
+      
+    /* This memory is valid until you call amqp_maybe_release_buffers() */
+    amqp_basic_properties_t *props = (amqp_basic_properties_t*)frame.payload.properties.decoded;
+      
+    bodySize = (size_t)frame.payload.properties.body_size;
+    receivedBytes = 0;
+    body = amqp_bytes_malloc(bodySize);
+      
+    // Frame #3+: body frames
+    while (receivedBytes < bodySize) {
+        result = amqp_simple_wait_frame(_channel.connection.internalConnection, &frame);
+        if (result < 0) {
+            *error = [self formatError:@"Failure waiting for frame."];
+            amqp_bytes_free(body);
+            return nil;
+        }
+        
+        if (frame.frame_type != AMQP_FRAME_BODY) {
+            *error = [self formatError:@"Expecting AMQP_FRAME_BODY type of frame."];
+            amqp_bytes_free(body);
+            return nil;
+        }
+          
+        receivedBytes += frame.payload.body_fragment.len;
+        memcpy(body.bytes, frame.payload.body_fragment.bytes, frame.payload.body_fragment.len);
+    }
+
+    NSString *reply_to = AMQP_BYTES_TO_NSSTRING(props->reply_to);
+    if (![reply_to hasPrefix:@"amq.rabbitmq.reply-to"]){
+        *error = [self formatError:@"Invalid fast consumer queue."];
+        return nil;
+    }
+    amqp_maybe_release_buffers(_channel.connection.internalConnection);
+    amqp_bytes_free(body);
+    return reply_to;
 }
 
 - (void)deleteQueueWithError:(NSError * __autoreleasing *)error

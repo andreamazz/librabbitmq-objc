@@ -17,6 +17,8 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#define HAVE_HTONLL
+
 #import "amqp.h"
 #import "amqp_tcp_socket.h"
 #import "amqp_socket.h"

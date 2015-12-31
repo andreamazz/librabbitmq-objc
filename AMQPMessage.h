@@ -19,6 +19,8 @@
 
 #import <Foundation/Foundation.h>
 
+# define AMQP_BYTES_TO_NSSTRING(x) [[NSString alloc] initWithBytes:x.bytes length:x.len encoding:NSUTF8StringEncoding]
+
 #import "AMQPObject.h"
 
 @class AMQPConsumer;

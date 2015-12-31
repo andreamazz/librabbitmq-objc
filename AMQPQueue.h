@@ -24,6 +24,7 @@
 @class AMQPChannel;
 @class AMQPExchange;
 @class AMQPConsumer;
+@class AMQPMessage;
 
 @interface AMQPQueue : AMQPObject
 
@@ -32,11 +33,19 @@
 
 - (id)initWithName:(NSString *)theName onChannel:(AMQPChannel *)theChannel isPassive:(BOOL)passive isExclusive:(BOOL)exclusive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
 
+- (id)initPersistentWithName:(NSString *)theName onChannel:(AMQPChannel *)theChannel isPassive:(BOOL)passive isExclusive:(BOOL)exclusive isDurable:(BOOL)durable getsAutoDeleted:(BOOL)autoDelete error:(NSError * __autoreleasing *)error;
+
 - (void)bindToExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey error:(NSError * __autoreleasing *)error;
 - (void)unbindFromExchange:(AMQPExchange *)theExchange withKey:(NSString *)bindingKey error:(NSError * __autoreleasing *)error;
 
 - (void)deleteQueueWithError:(NSError * __autoreleasing *)error;
 
 - (AMQPConsumer *)startConsumerWithAcknowledgements:(BOOL)ack isExclusive:(BOOL)exclusive receiveLocalMessages:(BOOL)local error:(NSError * __autoreleasing *)error;
+
+/*
+ * TODO: This just pulls the reply_to field from the message for now - update to return full AMQPMessage
+ */
+- (NSError *) formatError:(NSString *)reason;
+- (NSString *)basicGet:(BOOL)ack error:(NSError * __autoreleasing *)error;
 
 @end
